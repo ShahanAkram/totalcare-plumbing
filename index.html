@@ -1226,19 +1226,54 @@
             document.getElementById('quoteModal').classList.add('hidden');
         }
 
+        // Webhook Endpoint (all form submissions are sent here)
+        const WEBHOOK_URL = 'https://n8n.unitzero.tech/webhook/1ea344e5-2daa-43cd-a6ad-6869127e97fa';
+        const SOURCE_WEBSITE = 'https://totalcare-plumbing.vercel.app/';
+
+        // Collect field values from a form using each field's label text as the key
+        function collectFormData(form) {
+            const data = {};
+            form.querySelectorAll('input, select, textarea').forEach((el, idx) => {
+                const container = el.closest('div');
+                const label = container ? container.querySelector('label') : null;
+                let key = label
+                    ? label.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+                    : ('field_' + idx);
+                data[key] = el.value;
+            });
+            return data;
+        }
+
+        function sendToWebhook(formName, form) {
+            const payload = {
+                form_name: formName,
+                source_website: SOURCE_WEBSITE,
+                submitted_at: new Date().toISOString(),
+                ...collectFormData(form)
+            };
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error('Webhook submission failed:', err));
+        }
+
         // Form Handlers with Toast Feedback
         function handleQuoteSubmit(e) {
             e.preventDefault();
+            sendToWebhook('quote-form', e.target);
             alert("Thank you! Your quote request has been sent to Total Care Plumbing. We will call you back shortly at (562) 587-7129!");
             e.target.reset();
         }
         function handleContactSubmit(e) {
             e.preventDefault();
+            sendToWebhook('contact-form', e.target);
             alert("Thank you! Your message has been received by Total Care Plumbing in Hurst, TX. We will contact you shortly.");
             e.target.reset();
         }
         function handleModalSubmit(e) {
             e.preventDefault();
+            sendToWebhook('modal-form', e.target);
             alert("Thank you! Your free estimate request has been submitted to Total Care Plumbing.");
             closeModal();
             e.target.reset();
